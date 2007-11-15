@@ -1,0 +1,70 @@
+The RT::Authen::Federation module will allow to federate the authentication of RT via
+PAPI, Shibboleth, or other federated identities systems.
+
+This README is a short guide for installing this module, and it will explain the needed steps 
+for enabling this authentication extension.
+
+
+RT::Authen::Federation is freely available under the terms of Version 2 of the GNU General
+Public License.
+
+     Carlos Fuentes <carlos.fuentes@RedIRIS.es>
+     RedIRIS, the Spanish Research & Education Network
+     November, 2007
+     
+REQUIRED PACKAGES:
+------------------
+* RT 3.6.x or later, configured, installed and tested.
+* APR::Table
+
+Installation instructions:
+--------------------------
+1) Install RT 3.7 following RT's regular installation instructions
+
+2) Run "perl Makefile.PL" to generate a makefile for RT::Authen::Federation.
+
+3) Type "make install".
+
+Configuring RTIR
+----------------
+After you have installed the module, you have to add and configure the following variable into 
+the RT_SiteConfig file, if you want to use the federation authentication. In the case this variable
+is not present, the module won't be active.
+
+The $FederationConfig has the following components:
+
+* RootUID 		-> The module is using the value of this field to identify who has right to fall
+					back to the RT authentication, once that user gets in the RT authentication, it
+					will have the chance for loging as root in the system. 
+* NetIDAttr		-> The value of this field will point to the field of the federation credentials
+					which is storing the NetID. This NedID will be used by the module as user
+					identificator. The pointed attribute must be those that is storing the mail 
+					address.
+* UIDAttr		-> The value of this field will point to the field of the federation credentials
+					which is storing the Username. 
+* GroupAttr		-> The value of this field will point to the field of the federation credentials
+					which is storing the group(s) what the user belongs to. 
+* GroupSeparator-> The value of this fied 
+* GroupsMapped	-> This is the mapping between Federation Groups and RT Groups. 
+					We should take care of the following issue, if a user doesn't belong to any
+					of the mapped groups, it will be a non-privileged user in the user, therefore
+					it will be accessing to the unprivileged interface of RT. However if the user
+					belongs to one of the mapped groups, it will be accessing to the full interface 
+					of RT. 
+* LogOutURL		-> This field will contain a URL for logging out of the federation
+
+Set($FederationConfig, {
+        'RootUID'       => 'someone@domain.xx',
+        'NetIDAttr'     => 'Federation Attribute Mail'
+        'UIDAttr'       => 'Federation Attribute UID',
+        'GroupAttr'     => 'Federation Attribute Group(s)',
+        'LogOutURL'     => 'URL for deleting the federation credentials',
+        'GroupSeparator' => 'Symbol uses for separting the groups',
+        'GroupsMapped'  => { # Mapping between Federation groups and RT groups
+        				'FederationGroup1' => 'RTGroup1',
+                        'FederationGroup2' => 'RTGroup2',
+                        		.....
+                        'FederationGroupN' => 'RTGroupN',
+                },
+});
+

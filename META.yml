@@ -1,0 +1,11 @@
+name: RT-Authen-Federation
+version: 1.1
+abstract: Allows RT to federate the authentication via Shibboleth, PAPI
+author: Carlos Fuentes <carlos.fuentes@rediris.es>
+license: GPL version 2
+distribution_type: module
+no_index:
+  directory:
+    - html
+    - inc
+generated_by: Module::Install version 0.34

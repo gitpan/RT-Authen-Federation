@@ -1,0 +1,120 @@
+<%INIT>
+
+use APR::Table;
+
+# Getting the HTTP headers
+my $table=  $r->headers_in();
+
+# Getting the configuration for the module
+# This configuration should be defined in RT_Siteconfig.pm file
+my $config = RT->Config->Get('FederationConfig');
+
+# If we don't have a defined configuration, the module will fall
+# back to the RT Authentication system
+
+if (defined $config) {
+	# Getting the needed variables for the configuration
+	
+	my $rootUser = $config->{'RootUID'};
+	my $netIdAttr = $config->{'NetIDAttr'};
+	my $userAttr = $config->{'UIDAttr'};
+	my $groupAttr = $config->{'GroupAttr'};
+	my $groupSeparator = $config->{'GroupSeparator'};
+	my $groupMapping = $config->{'GroupsMapped'};
+	
+	my $currentUser = $table->get($netIdAttr);
+	
+	# If the currentUser is the user who is allowed to access as the RT root
+	# the module is falling back to the RT Authentication system
+	if ($rootUser ne $currentUser) {
+		my $currentUserName = $table->get($userAttr);
+		$currentUserName = $currentUser unless $currentUserName;
+		my $currentGroups = $table->get($groupAttr);
+		my @currentGroups = split /$groupSeparator/,$currentGroups;
+		
+		# The following variable will determine if a user is privileged or 
+		# non-privileged when it accesses in the system. A user will be 
+		# privileged if one of its federation groups is mapped to one RT group
+		my $privilegedUser = 0;
+		my @userGroups;
+		
+		foreach my $group (@currentGroups) {
+			if (exists $groupMapping->{$group}) {
+				$privilegedUser = 1;
+				push @userGroups, $groupMapping->{$group};
+			}
+		}
+	    if ( ( !$session{'CurrentUser'} ) && ($currentUser) ) {
+
+	        # set a global user so we know elsewhere we're using OpenID for auth
+    	    $session{'FederationID'} = $currentUser;
+    
+        	# PAPI has verified that the user has control of this e-mail address,
+    	    # so it's okay to use it to get a valid RT user
+	
+        	# we've got a valid user, so try to load
+	        $session{'CurrentUser'} = RT::CurrentUser->new($RT::SystemUser);
+   		    $session{'CurrentUser'}->LoadByCols( EmailAddress => $currentUser );
+       	    $session{'CurrentUser'}->{'FederationID'} = 1;    
+    	    if ( $session{'CurrentUser'}->id ) {
+    	    	# Set Privileged depending on the new Privileged Status
+    	    	my $UserObj = RT::User->new($RT::SystemUser);
+    	    	$UserObj->LoadByCols( EmailAddress => $currentUser );
+    	        my  ($code, $msg) =  $UserObj->SetPrivileged($privilegedUser);
+        	    $RT::Logger->info("Set Privileged: $msg");    	    	
+        	    $RT::Logger->info($session{'CurrentUser'}->Name ." logged in by RT::Authen::Federation"); 
+        	
+   	      	    # Check if the user has correctly defined the groups to which it belongs to	
+        	    use RT::Groups;
+        	    my $allowedGroups = join (" ",@userGroups);
+		 	 	my $groups = RT::Groups->new($RT::SystemUser);
+  				$groups-> LimitToUserDefinedGroups();
+  				while (my $group = $groups->Next()) {
+  					my $rtNameGroup = $group->Name;
+  					if (($allowedGroups =~/$rtNameGroup/) && (!$group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
+  						my ($val, $mesg) =  $group->AddMember($session{'CurrentUser'}->PrincipalId);
+  						$RT::Logger->info("attempted to add ".$currentUser." to the group \"$group\": $mesg");
+  					} elsif (!($allowedGroups =~/$rtNameGroup/) && ($group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
+  						my ($val, $mesg) =  $group->DeleteMember($session{'CurrentUser'}->PrincipalId);
+  						$RT::Logger->info("attempted to delete ".$currentUser." to the group \"$group\": $mesg");
+  					} 
+  				}
+	        } else {
+    	        my $UserObj = RT::User->new($RT::SystemUser);
+        	    my ( $id, $msg ) = $UserObj->Create(
+            	    Name => $currentUserName,     
+	                EmailAddress => $currentUser,
+    	            Privileged => $privilegedUser,
+        	    );
+            	$RT::Logger->info($currentUser ." attempted an account creation by RT::Authen::Federation: $msg");
+	            if ( $UserObj->id ) {	
+    	            # if a privileged user we insert him in a specific team, this is only by now
+    		        if ($privilegedUser) {
+    		        	foreach my $group (@userGroups) {
+	    		        	my $GroupObj = RT::Group->new($RT::SystemUser);
+    		    	    	$GroupObj->LoadByCols( Name => $group);
+        	    			my ($val, $mesg) =  $GroupObj->AddMember($UserObj->PrincipalId);
+	    	    	    	$RT::Logger->info("attempted to add ".$currentUser." to the group \"$group\": $mesg");
+    		        	}
+    		        }
+        	        # created the user, now load them as the current user
+            	    $session{'CurrentUser'}->Load( $UserObj->id );
+	                $session{'i'}++;
+    	            # redirect the user to their preference page to add more info
+        	        RT::Interface::Web::Redirect( $RT::WebURL . '/User/Prefs.html' );
+            	} else {
+    	        	# we couldn't create the user.  abort abort abort!
+        	    	delete $session{'CurrentUser'};
+	            	die( loc( "Cannot create user: [_1]", $msg ) );
+    	    	}
+	    	} 
+	    } 	    	
+	} else {
+		$RT::Logger->info("User with root access is falling back to RT authentication system"); 
+	}
+} else {
+	$RT::Logger->info("Not defined configuration for the RT::Authen::Federation"); 
+}
+
+
+</%INIT>

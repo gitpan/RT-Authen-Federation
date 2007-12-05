@@ -3,7 +3,17 @@
 
 # Getting the configuration for the module
 # This configuration should be defined in RT_Siteconfig.pm file
-my $config = RT->Config->Get('FederationConfig');
+use version;
+
+my $newVersion = version->new("3.7");
+my $currentVersion = version->new($RT::VERSION);
+
+my $config;
+if ($currentVersion > $newVersion) { 
+	$config = RT->Config->Get('FederationConfig');
+} else {
+	$config = $RT::FederationConfig;
+}
 
 # If we don't have a defined configuration, the module will fall
 # back to the RT Authentication system

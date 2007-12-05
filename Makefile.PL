@@ -9,5 +9,6 @@ version_from    ('lib/RT/Authen/Federation.pm');
 license         ('GPL version 2');
 
 requires        ('APR::Table');
+requires        ('version');
 
 &WriteAll;

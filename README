@@ -42,6 +42,8 @@ $FederationConfig has the following components:
 					address, as RT will probably use its value to send messages to the user.
 * UIDAttr		-> The value of this field will point to the field of the federation credentials
 					which is storing the Username. 
+* MailAttr		-> The value of this field will 
+
 * GroupAttr		-> The value of this field will point to the field of the federation credentials
 					which is storing the group(s) what the user belongs to. 
 * GroupSeparator-> The value of this fied configures a string acting as separator inside the

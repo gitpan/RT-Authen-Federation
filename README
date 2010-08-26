@@ -56,6 +56,9 @@ $FederationConfig has the following components:
 					interface of RT. 
 * LogOutURL		-> This field will contain a URL for logging out of the federation
 
+If you are not interesed on using group mapping, you should not define GroupAttr, GroupSeparator and GroupsMapped variables. Using the module in this way, 
+all the users will be created as unprivileged.
+
 Set($FederationConfig, {
         'RootUID'       => 'someone@domain.xx',
         'NetIDAttr'     => 'Federation Attribute Mail'

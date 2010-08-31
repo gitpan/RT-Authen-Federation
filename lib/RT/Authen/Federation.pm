@@ -9,6 +9,6 @@ It is freely redistributable under the terms of version 2 of the GNU GPL.
 
 package RT::Authen::Federation;
 
-our $VERSION = '1.2';
+our $VERSION = '1.2.1';
 
 1;

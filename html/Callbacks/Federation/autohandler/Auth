@@ -105,30 +105,32 @@ if (defined $config) {
     	    	$UserObj->Load( $currentUser );
     	    	my $userGroupsObj = $UserObj->OwnGroups();
     	    	
-    	    	# Checks if the user is still privileged altrough it doesn't belong to any federation group,
-    	    	# It avoids to delete the user from internal groups
-    	    	my $numUserGroups = 0;
-    	    	while ( my $userGroupObj = $userGroupsObj->Next() ) { $numUserGroups++; };
+    	    	if (defined $groupAttr) {
+	    	    	# Checks if the user is still privileged altrough it doesn't belong to any federation group,
+    		    	# It avoids to delete the user from internal groups
+    		    	my $numUserGroups = 0;
+    	    		while ( my $userGroupObj = $userGroupsObj->Next() ) { $numUserGroups++; };
     	    	
-    	    	if (scalar(@federationGroups) < $numUserGroups ) { $privilegedUser = 1; };
+	    	    	if (scalar(@federationGroups) < $numUserGroups ) { $privilegedUser = 1; };
 
-    	        my  ($code, $msg) =  $UserObj->SetPrivileged($privilegedUser);
-        	    $RT::Logger->info("Set Privileged: $msg");    	    	
-        	    $RT::Logger->info("\"".$session{'CurrentUser'}->Name."\" logged in by RT::Authen::Federation"); 
+    		        my  ($code, $msg) =  $UserObj->SetPrivileged($privilegedUser);
+        		    $RT::Logger->info("Set Privileged: $msg");    	    	
+        		    $RT::Logger->info("\"".$session{'CurrentUser'}->Name."\" logged in by RT::Authen::Federation"); 
         	
-   	      	    # Check if the user has correctly defined the groups to which it belongs to	
-  				while (my $group = $groups->Next()) {
-  					my $rtNameGroup = $group->Name;
-  					if ( exists $mappedRTGroups{$rtNameGroup}  and defined $mappedRTGroups{$rtNameGroup} ){ 
-	  					if (($allowedGroups =~/$rtNameGroup/) && (!$group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
-  							my ($val, $mesg) =  $group->AddMember($session{'CurrentUser'}->PrincipalId);
-  							$RT::Logger->info("attempted to add ".$currentUser." to the group \"".$group->Name."\": $mesg");
-  						} elsif (!($allowedGroups =~/$rtNameGroup/) && ($group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
-  							my ($val, $mesg) =  $group->DeleteMember($session{'CurrentUser'}->PrincipalId);
-  							$RT::Logger->info("attempted to delete ".$currentUser." to the group \"".$group->Name."\": $mesg");
-  						} 
-  					}
-  				}
+	   	      	    # Check if the user has correctly defined the groups to which it belongs to	
+  					while (my $group = $groups->Next()) {
+  						my $rtNameGroup = $group->Name;
+  						if ( exists $mappedRTGroups{$rtNameGroup}  and defined $mappedRTGroups{$rtNameGroup} ){ 
+	  						if (($allowedGroups =~/$rtNameGroup/) && (!$group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
+  								my ($val, $mesg) =  $group->AddMember($session{'CurrentUser'}->PrincipalId);
+  								$RT::Logger->info("attempted to add ".$currentUser." to the group \"".$group->Name."\": $mesg");
+	  						} elsif (!($allowedGroups =~/$rtNameGroup/) && ($group->HasMember($session{'CurrentUser'}->PrincipalObj))) {
+  								my ($val, $mesg) =  $group->DeleteMember($session{'CurrentUser'}->PrincipalId);
+  								$RT::Logger->info("attempted to delete ".$currentUser." to the group \"".$group->Name."\": $mesg");
+  							} 
+  						}
+	  				}
+    	    	}
 	        } else {
     	        my $UserObj = RT::User->new($RT::SystemUser);
         	    my ( $id, $msg ) = $UserObj->Create(
@@ -139,7 +141,7 @@ if (defined $config) {
             	$RT::Logger->info($currentUser ." attempted an account creation by RT::Authen::Federation: $msg");
 	            if ( $UserObj->id ) {	
     	            # if a privileged user we insert him in a specific team, this is only by now
-    		        if ($privilegedUser) {
+    		        if ($privilegedUser and defined $groupAttr) {
     		        	foreach my $group (@federationGroups) {
 	    		        	my $GroupObj = RT::Group->new($RT::SystemUser);
     		    	    	$GroupObj->LoadByCols( Name => $group);

@@ -57,7 +57,7 @@ $FederationConfig has the following components:
 * LogOutURL		-> This field will contain a URL for logging out of the federation
 
 If you are not interesed on using group mapping, you should not define GroupAttr, GroupSeparator and GroupsMapped variables. Using the module in this way, 
-all the users will be created as unprivileged.
+all the users will be created as unprivileged. If you grant privileged status to an user, the module won't change this behaviour, even if that user is not member of a internal group
 
 Set($FederationConfig, {
         'RootUID'       => 'someone@domain.xx',
